@@ -1,0 +1,44 @@
+# Render Blueprint - https://render.com/docs/blueprint-spec
+# Deploy: Render Dashboard -> New -> Blueprint -> pick this repo.
+
+services:
+  - type: web
+    name: agrobot
+    runtime: python
+    plan: free
+    # The app lives in a subfolder, so Render must build from there.
+    rootDir: "batch -13 AgroBot Universal AI-Based Agricultural Assistant"
+    buildCommand: pip install -r requirements.txt
+    # Flask-SocketIO needs a websocket-capable worker, and -w 1 because
+    # there is no shared message queue between workers.
+    startCommand: >-
+      gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker
+      -w 1 -b 0.0.0.0:$PORT --timeout 120 wsgi:app
+    healthCheckPath: /login
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      # Generated once by Render and kept stable across deploys.
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      # sync: false = Render prompts you for the value in the dashboard.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: WEATHER_API_KEY
+        sync: false
+      # Seeded account passwords. Render generates these and keeps them stable;
+      # read them from the service's Environment tab to log in the first time.
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: DEMO_PASSWORD
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agrobot-db
+          property: connectionString
+
+databases:
+  - name: agrobot-db
+    plan: free
+    databaseName: agrobot
+    user: agrobot

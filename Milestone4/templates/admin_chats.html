@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+
+{% block title %}Chat Management - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="display-5 fw-bold mb-3">Chat Management</h1>
+                            <p class="lead mb-0">Monitor and manage all AI chat conversations</p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="display-6 mb-2">{{ chats.total }}</div>
+                            <small>Total Conversations</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Today's Chats</h6>
+                            <h4 class="mb-0">248</h4>
+                            <small>Conversations</small>
+                        </div>
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                            <i class="bi bi-chat-dots text-success fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Image Analyses</h6>
+                            <h4 class="mb-0">42</h4>
+                            <small>Today</small>
+                        </div>
+                        <div class="rounded-circle bg-info bg-opacity-10 p-3">
+                            <i class="bi bi-camera text-info fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Avg Response Time</h6>
+                            <h4 class="mb-0">1.2s</h4>
+                            <small>Seconds</small>
+                        </div>
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                            <i class="bi bi-lightning text-warning fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Satisfaction Rate</h6>
+                            <h4 class="mb-0">94%</h4>
+                            <small>Positive feedback</small>
+                        </div>
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                            <i class="bi bi-emoji-smile text-primary fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge filter-badge active" data-filter="all">All Chats</span>
+                                <span class="badge filter-badge" data-filter="today">Today</span>
+                                <span class="badge filter-badge" data-filter="week">This Week</span>
+                                <span class="badge filter-badge" data-filter="image">Image Chats</span>
+                                <span class="badge filter-badge" data-filter="text">Text Only</span>
+                                <span class="badge filter-badge" data-filter="flagged">Flagged</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Search conversations..." id="chatSearch">
+                                <button class="btn btn-success" type="button">Search</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chats Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">All Conversations ({{ chats.total }})</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-success" id="exportChats">
+                            <i class="bi bi-download me-2"></i>Export
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" id="clearAllChats">
+                            <i class="bi bi-trash me-2"></i>Clear All
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Question</th>
+                                    <th>AI Response</th>
+                                    <th>Type</th>
+                                    <th>Time</th>
+                                    <th>Language</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chat in chats.items %}
+                                <tr>
+                                    <td>{{ chat.id }}</td>
+                                    <td>
+                                        {% set user = User.query.get(chat.user_id) %}
+                                        {% if user %}
+                                        <div class="d-flex align-items-center">
+                                            {% if user.profile_picture %}
+                                            <img src="{{ url_for('uploaded_file', filename=user.profile_picture) }}"
+                                                 class="rounded-circle me-2" width="30" height="30" alt="">
+                                            {% else %}
+                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2"
+                                                 style="width: 30px; height: 30px;">
+                                                <i class="bi bi-person text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ user.name or 'Anonymous' }}</div>
+                                                <small class="text-muted">{{ user.email }}</small>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">Deleted User</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 200px;">
+                                            {{ chat.user_message[:50] }}{% if chat.user_message|length > 50 %}...{% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 200px;">
+                                            {{ chat.bot_response[:50] }}{% if chat.bot_response|length > 50 %}...{% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if chat.chat_type == 'image' %}bg-warning{% else %}bg-info{% endif %}">
+                                            {{ chat.chat_type }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if chat.created_at %}
+                                        <small>{{ chat.created_at.strftime('%Y-%m-%d') }}</small><br>
+                                        <small class="text-muted">{{ chat.created_at.strftime('%H:%M') }}</small>
+                                        {% else %}
+                                        <small class="text-muted">N/A</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ chat.language|upper }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-success view-chat"
+                                                    data-chat-id="{{ chat.id }}">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary flag-chat"
+                                                    data-chat-id="{{ chat.id }}">
+                                                <i class="bi bi-flag"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger delete-chat"
+                                                    data-chat-id="{{ chat.id }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <!-- Pagination -->
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if chats.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_chats', page=chats.prev_num) }}">Previous</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Previous</span>
+                            </li>
+                            {% endif %}
+
+                            {% for page_num in chats.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                                {% if page_num %}
+                                    {% if page_num == chats.page %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('admin_chats', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if chats.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_chats', page=chats.next_num) }}">Next</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Next</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Analytics -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Chat Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Chat Volume by Hour</h6>
+                            <div class="d-flex align-items-end mt-3" style="height: 200px;">
+                                {% for hour in ['6', '9', '12', '15', '18', '21'] %}
+                                <div class="flex-fill text-center mx-1">
+                                    <div class="bg-success rounded-top" style="height: {{ [30, 80, 60, 50, 90, 40][loop.index0] }}px;"></div>
+                                    <small class="text-muted d-block mt-1">{{ hour }}:00</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Chat Types Distribution</h6>
+                            <div class="mt-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-success rounded me-3" style="width: 20px; height: 20px;"></div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Text Chats</span>
+                                            <span class="fw-bold">75%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-success" style="width: 75%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-warning rounded me-3" style="width: 20px; height: 20px;"></div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Image Chats</span>
+                                            <span class="fw-bold">20%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" style="width: 20%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-info rounded me-3" style="width: 20px; height: 20px;"></div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Document Chats</span>
+                                            <span class="fw-bold">5%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-info" style="width: 5%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chat Detail Modal -->
+<div class="modal fade" id="chatDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chat Conversation Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="chatDetailContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="exportChatBtn">
+                    <i class="bi bi-download me-2"></i>Export Chat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clear Confirmation Modal -->
+<div class="modal fade" id="clearModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Clear All Chats</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Warning:</strong> This will delete ALL chat history. This action cannot be undone.
+                </div>
+                <p>Type <strong>CLEAR ALL CHATS</strong> to confirm:</p>
+                <input type="text" class="form-control" id="confirmClear">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmClearBtn" disabled>Clear All Chats</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Filter badges
+    $('.filter-badge').click(function() {
+        $('.filter-badge').removeClass('active');
+        $(this).addClass('active');
+        // Implement filter logic
+    });
+
+    // Search functionality
+    $('#chatSearch').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        $('tbody tr').each(function() {
+            const text = $(this).text().toLowerCase();
+            $(this).toggle(text.includes(searchTerm));
+        });
+    });
+
+    // View chat details
+    $('.view-chat').click(function() {
+        const chatId = $(this).data('chat-id');
+
+        // Simulate loading chat data
+        $('#chatDetailContent').html(`
+            <div class="text-center py-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading chat details...</p>
+            </div>
+        `);
+
+        // In real app, fetch chat data via AJAX
+        setTimeout(() => {
+            $('#chatDetailContent').html(`
+                <div class="mb-4">
+                    <h6>User Information</h6>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3"
+                                     style="width: 50px; height: 50px;">
+                                    <i class="bi bi-person fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">John Doe</h6>
+                                    <small class="text-muted">john@example.com • Wheat Farmer • Punjab</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6>Conversation</h6>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <strong>User Question:</strong>
+                                <small class="text-muted">10:30 AM, Mar 15</small>
+                            </div>
+                            <p>How to control aphids in wheat crop?</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <strong>AI Response:</strong>
+                                <small class="text-muted">10:30 AM, Mar 15</small>
+                            </div>
+                            <p>Aphids can be controlled using neem oil spray (5ml per liter of water) or chemical insecticides like imidacloprid. Regular monitoring and early detection are key.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle me-2"></i>Chat Details</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Chat Type</small>
+                            <strong>Text</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Language</small>
+                            <strong>English</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Response Time</small>
+                            <strong>1.2 seconds</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Helpful?</small>
+                            <span class="badge bg-success">Yes</span>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+            $('#exportChatBtn').data('chat-id', chatId);
+        }, 500);
+
+        $('#chatDetailModal').modal('show');
+    });
+
+    // Flag chat
+    $('.flag-chat').click(function() {
+        const chatId = $(this).data('chat-id');
+        if (confirm('Flag this chat for review?')) {
+            // AJAX call to flag chat
+            $(this).removeClass('btn-outline-primary').addClass('btn-warning');
+            showToast('Chat flagged for review');
+        }
+    });
+
+    // Delete chat
+    $('.delete-chat').click(function() {
+        const chatId = $(this).data('chat-id');
+        if (confirm('Delete this chat?')) {
+            // AJAX call to delete chat
+            $(this).closest('tr').fadeOut();
+            showToast('Chat deleted successfully');
+        }
+    });
+
+    // Export all chats
+    $('#exportChats').click(function() {
+        // Export logic
+        alert('Export feature coming soon!');
+    });
+
+    // Clear all chats
+    $('#clearAllChats').click(function() {
+        $('#clearModal').modal('show');
+    });
+
+    // Clear confirmation
+    $('#confirmClear').on('keyup', function() {
+        $('#confirmClearBtn').prop('disabled', $(this).val() !== 'CLEAR ALL CHATS');
+    });
+
+    $('#confirmClearBtn').click(function() {
+        // AJAX call to clear all chats
+        $.post('/admin/clear_chats', function(response) {
+            if (response) {
+                location.reload();
+            }
+        });
+    });
+
+    // Export single chat
+    $('#exportChatBtn').click(function() {
+        const chatId = $(this).data('chat-id');
+        // Export single chat logic
+        alert('Exporting chat #' + chatId);
+    });
+
+    // Toast notification
+    function showToast(message) {
+        const toast = $(`
+            <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-check-circle me-2"></i>${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `);
+
+        $('.toast-container').remove();
+        $('body').append('<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>');
+        $('.toast-container').append(toast);
+
+        const bsToast = new bootstrap.Toast(toast[0]);
+        bsToast.show();
+    }
+});
+</script>
+{% endblock %}

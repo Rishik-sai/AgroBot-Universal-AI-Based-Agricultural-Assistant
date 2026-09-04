@@ -1,0 +1,24 @@
+# --- Web framework ---
+Flask==3.0.3
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.1.1
+Flask-SocketIO==5.3.6
+SQLAlchemy==2.0.36
+Werkzeug==3.0.4
+Jinja2==3.1.4
+
+# --- Production server (SocketIO needs an async worker) ---
+gunicorn==22.0.0
+gevent==24.2.1
+gevent-websocket==0.10.1
+
+# --- AI / integrations ---
+google-genai==0.3.0
+requests==2.32.3
+
+# --- Utilities ---
+python-dotenv==1.0.1
+Pillow==10.4.0
+
+# --- PostgreSQL driver (used when DATABASE_URL is set) ---
+psycopg2-binary==2.9.9

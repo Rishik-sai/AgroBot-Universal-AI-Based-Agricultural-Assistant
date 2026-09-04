@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-success text-black">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="display-5 fw-bold mb-3">User Management</h1>
+                            <p class="lead mb-0">View and manage all registered users</p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="display-6 mb-2">{{ total_all }}</div>
+                            <small>Total Users</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Farmers</h6>
+                            <h4 class="mb-0">{{ total_farmers }}</h4>
+                            <small>Total farmers</small>
+                        </div>
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                            <i class="bi bi-person-fill text-success fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Admins</h6>
+                            <h4 class="mb-0">{{ total_admins }}</h4>
+                            <small>Total admins</small>
+                        </div>
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-3">
+                            <i class="bi bi-shield-fill text-danger fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Active</h6>
+                            <h4 class="mb-0">{{ total_active }}</h4>
+                            <small>Active users</small>
+                        </div>
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                            <i class="bi bi-check-circle-fill text-primary fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-secondary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Inactive</h6>
+                            <h4 class="mb-0">{{ total_inactive }}</h4>
+                            <small>Inactive users</small>
+                        </div>
+                        <div class="rounded-circle bg-secondary bg-opacity-10 p-3">
+                            <i class="bi bi-x-circle-fill text-secondary fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('admin_users') }}" class="row g-3">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="search"
+                                   placeholder="Search name, email, phone..." value="{{ search }}">
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" name="role">
+                                <option value="all" {% if role_filter == 'all' %}selected{% endif %}>All Roles</option>
+                                <option value="farmer" {% if role_filter == 'farmer' %}selected{% endif %}>Farmer</option>
+                                <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+                                <option value="agent" {% if role_filter == 'agent' %}selected{% endif %}>Agent</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" name="status">
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" name="per_page">
+                                <option value="10" {% if request.args.get('per_page', '20') == '10' %}selected{% endif %}>10 per page</option>
+                                <option value="20" {% if request.args.get('per_page', '20') == '20' %}selected{% endif %}>20 per page</option>
+                                <option value="50" {% if request.args.get('per_page', '20') == '50' %}selected{% endif %}>50 per page</option>
+                                <option value="100" {% if request.args.get('per_page', '20') == '100' %}selected{% endif %}>100 per page</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-success me-2">
+                                <i class="bi bi-search me-2"></i>Filter
+                            </button>
+                            <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary">Reset</a>
+                            <a href="{{ url_for('admin_export_users') }}" class="btn btn-outline-primary ms-2">
+                                <i class="bi bi-download me-2"></i>Export
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Users ({{ users.total }})</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear me-2"></i>Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('admin_export_users') }}"><i class="bi bi-download me-2"></i>Export All Users</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Contact</th>
+                                    <th>Role</th>
+                                    <th>Region</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users.items %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if user.profile_picture %}
+                                            <img src="{{ url_for('uploaded_file', filename=user.profile_picture) }}"
+                                                 class="rounded-circle me-2" width="32" height="32" alt="{{ user.name }}">
+                                            {% else %}
+                                            <div class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center"
+                                                 style="width: 32px; height: 32px;">
+                                                <i class="bi bi-person text-white"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ user.name or 'No Name' }}</div>
+                                                <small class="text-muted">{{ user.email }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>{{ user.phone or 'No phone' }}</div>
+                                        <small class="text-muted">{{ user.email }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if user.role == 'admin' %}bg-danger{% elif user.role == 'agent' %}bg-warning{% else %}bg-success{% endif %}">
+                                            {{ user.role|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ user.region or 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge {% if user.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ 'Active' if user.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('admin_view_user', user_id=user.id) }}"
+                                               class="btn btn-sm btn-outline-success" title="View">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% if user.id != current_user.id %}
+                                            <button type="button" class="btn btn-sm btn-outline-warning"
+                                                    data-bs-toggle="modal" data-bs-target="#editRoleModal{{ user.id }}" title="Edit Role">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="confirmDelete({{ user.id }}, '{{ user.email }}')" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Edit Role Modal -->
+                                        <div class="modal fade" id="editRoleModal{{ user.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Edit User Role</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <form method="POST" action="{{ url_for('admin_update_user_role', user_id=user.id) }}">
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Current Role: <strong>{{ user.role|title }}</strong></label>
+                                                                <select class="form-select" name="role" required>
+                                                                    <option value="farmer" {% if user.role == 'farmer' %}selected{% endif %}>Farmer</option>
+                                                                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                                                    <option value="agent" {% if user.role == 'agent' %}selected{% endif %}>Agent</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="alert alert-info">
+                                                                <i class="bi bi-info-circle me-2"></i>
+                                                                Changing role will affect user permissions immediately.
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-success">Update Role</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if users.pages > 1 %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if users.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_users', page=users.prev_num, search=search, role=role_filter, status=status_filter, per_page=request.args.get('per_page', 20)) }}">
+                                    Previous
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% for page_num in users.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                                {% if page_num %}
+                                    <li class="page-item {% if page_num == users.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('admin_users', page=page_num, search=search, role=role_filter, status=status_filter, per_page=request.args.get('per_page', 20)) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if users.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_users', page=users.next_num, search=search, role=role_filter, status=status_filter, per_page=request.args.get('per_page', 20)) }}">
+                                    Next
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Are you sure you want to delete user: <strong id="deleteUserEmail"></strong>?
+                    <br><br>
+                    This will permanently delete:
+                    <ul>
+                        <li>User account</li>
+                        <li>All chat history</li>
+                        <li>All image analyses</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Permanently</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(userId, email) {
+    document.getElementById('deleteUserEmail').textContent = email;
+    document.getElementById('deleteForm').action = "{{ url_for('admin_delete_user', user_id=0) }}".replace('0', userId);
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}
+
