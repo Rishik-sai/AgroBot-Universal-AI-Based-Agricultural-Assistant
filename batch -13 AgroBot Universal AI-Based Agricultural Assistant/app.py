@@ -933,6 +933,24 @@ def list_gemini_models():
         return jsonify({"success": False, "error": str(e), "message": "Failed to list models"})
 
 
+def _dep_versions():
+    """Installed versions of the packages the Gemini path depends on.
+
+    Temporary: the deployed build fails where an identical local build
+    succeeds, so the resolved versions are the open question.
+    """
+    import sys
+    from importlib.metadata import version, PackageNotFoundError
+    out = {"python": sys.version.split()[0]}
+    for pkg in ("google-genai", "pydantic", "pydantic-core", "httpx",
+                "httpcore", "anyio", "gevent", "greenlet", "gevent-websocket"):
+        try:
+            out[pkg] = version(pkg)
+        except PackageNotFoundError:
+            out[pkg] = "absent"
+    return out
+
+
 @app.route('/test-gemini')
 def test_gemini():
     try:
@@ -963,12 +981,20 @@ def test_gemini():
                     "api_key_configured": bool(GEMINI_API_KEY)
                 })
             except Exception as e:
-                attempts.append({"model": model_name, "error": str(e)[:120]})
+                attempts.append({
+                    "model": model_name,
+                    "error": str(e)[:120],
+                    # Where the failure actually originates. The same call
+                    # succeeds locally under the identical worker, so the
+                    # frames matter more than the message.
+                    "frames": traceback.format_exc().strip().splitlines()[-6:],
+                })
         return jsonify({
             "status": "error",
             "package": "new (google.genai)",
             "error": "every configured model failed",
             "attempts": attempts,
+            "env": _dep_versions(),
             "suggestion": "Set GEMINI_MODELS in .env to a model your key can use, or check your quota"
         })
     except Exception as e:
