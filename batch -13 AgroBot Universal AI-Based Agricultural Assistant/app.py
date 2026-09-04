@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlsplit
 import json
 import time
 import traceback
@@ -3311,6 +3312,8 @@ def backup_database():
 
 
 @app.route("/test-users")
+@login_required
+@admin_required
 def test_users():
     users = User.query.all()
     result = [{
@@ -3324,19 +3327,43 @@ def test_users():
     return jsonify({"users": result, "count": len(result)})
 
 
+def _safe_db_uri():
+    """Connection target with the password stripped.
+
+    This endpoint is public, so the raw URI must never leave the process --
+    it carries the Postgres user and password.
+    """
+    uri = app.config['SQLALCHEMY_DATABASE_URI']
+    try:
+        parts = urlsplit(uri)
+        if not parts.hostname:
+            return f"{parts.scheme}:///<local>"
+        host = parts.hostname + (f":{parts.port}" if parts.port else "")
+        return f"{parts.scheme}://{host}{parts.path}"
+    except Exception:
+        return "<unavailable>"
+
+
 @app.route("/check-db")
 def check_database():
+    """Public health check: is the database reachable and seeded?
+
+    Deliberately returns no credentials and no user records -- use
+    /test-users (admin-only) for the roster.
+    """
     try:
         with app.app_context():
+            uri = app.config['SQLALCHEMY_DATABASE_URI']
             db_info = {
-                'database_uri': app.config['SQLALCHEMY_DATABASE_URI'],
-                'database_exists': os.path.exists(app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')) if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI'] else 'N/A (PostgreSQL)',
+                'database_uri': _safe_db_uri(),
+                'database_exists': os.path.exists(uri.replace('sqlite:///', '')) if 'sqlite' in uri else 'N/A (PostgreSQL)',
                 'total_users': User.query.count(),
-                'users': [{'id': u.id, 'email': u.email, 'name': u.name, 'created_at': u.created_at.isoformat() if u.created_at else None} for u in User.query.all()]
             }
             return jsonify({'success': True, 'database_info': db_info})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc()})
+        # No traceback: it can quote config values, including the URI.
+        app.logger.exception("check-db failed")
+        return jsonify({'success': False, 'error': type(e).__name__}), 500
 
 
 @app.errorhandler(404)
