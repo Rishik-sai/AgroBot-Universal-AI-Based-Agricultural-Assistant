@@ -9,11 +9,13 @@ services:
     # The app lives in a subfolder, so Render must build from there.
     rootDir: "batch -13 AgroBot Universal AI-Based Agricultural Assistant"
     buildCommand: pip install -r requirements.txt
-    # Flask-SocketIO needs a websocket-capable worker, and -w 1 because
-    # there is no shared message queue between workers.
+    # gthread rather than a gevent worker: gevent's monkey patching breaks
+    # stdlib ssl here (see app.py). Socket.IO uses long-polling instead of
+    # websockets. -w 1 because there is no shared message queue between
+    # workers; concurrency comes from --threads.
     startCommand: >-
-      gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker
-      -w 1 -b 0.0.0.0:$PORT --timeout 120 wsgi:app
+      gunicorn -k gthread -w 1 --threads 8
+      -b 0.0.0.0:$PORT --timeout 120 wsgi:app
     healthCheckPath: /login
     envVars:
       - key: PYTHON_VERSION

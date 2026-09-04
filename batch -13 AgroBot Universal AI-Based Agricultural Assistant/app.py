@@ -86,7 +86,12 @@ login_manager.login_view = "login"
 # -------------------------------------------------------------------
 # 4. Initialize SocketIO (app is defined)
 # -------------------------------------------------------------------
-socketio = SocketIO(app, cors_allowed_origins="*")
+# threading, not gevent: gevent's monkey patching rebinds ssl.SSLContext in
+# the stdlib ssl namespace, and ssl.py's own verify_mode setter resolves
+# that name at call time -- so super() lands back on itself and every
+# outbound HTTPS call dies in RecursionError. Threading mode keeps ssl
+# pristine; Socket.IO falls back to HTTP long-polling.
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # -------------------------------------------------------------------
 # 5. Gemini AI setup

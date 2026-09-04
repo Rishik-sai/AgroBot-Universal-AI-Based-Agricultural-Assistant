@@ -7,15 +7,9 @@ SQLAlchemy==2.0.36
 Werkzeug==3.0.4
 Jinja2==3.1.4
 
-# --- Production server (SocketIO needs an async worker) ---
+# --- Production server ---
+# gthread, not gevent: see the async_mode note in app.py.
 gunicorn==22.0.0
-# 24.2.1 predates settled Python 3.12 support: on Render's custom-built
-# 3.12.3 its monkey-patched ssl.SSLContext became its own base class, so
-# every HTTPS call died in ssl.py with
-#   super(SSLContext, SSLContext).verify_mode.__set__(...)  [x952]
-#   RecursionError: maximum recursion depth exceeded
-gevent==26.8.0
-gevent-websocket==0.10.1
 
 # --- AI / integrations ---
 google-genai==2.22.0
