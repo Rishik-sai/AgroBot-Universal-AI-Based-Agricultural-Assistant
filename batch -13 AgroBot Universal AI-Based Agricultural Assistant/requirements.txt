@@ -23,13 +23,3 @@ Pillow==10.4.0
 # --- PostgreSQL driver (used when DATABASE_URL is set) ---
 psycopg2-binary==2.9.9
 
-# --- Pinned transitive deps ---
-# google-genai + gevent are sensitive to these. Left unpinned, Render resolved
-# a combination that failed at runtime with "super(type, obj): obj must be an
-# instance or subtype of type" on every Gemini call, while the same
-# requirements worked locally. These are the versions verified against the
-# production stack (gunicorn + GeventWebSocketWorker + google-genai 2.22.0).
-pydantic==2.13.5
-httpx==0.28.1
-anyio==4.15.0
-greenlet==3.5.5

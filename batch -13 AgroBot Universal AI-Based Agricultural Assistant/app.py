@@ -105,24 +105,74 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 GEMINI_ENABLED = False
 gemini_client = None
 
-try:
-    from google import genai as google_genai
-    if GEMINI_API_KEY and GEMINI_API_KEY != "not_set":
-        gemini_client = google_genai.Client(api_key=GEMINI_API_KEY)
-        GEMINI_ENABLED = True
-        print("🔑 Gemini configured (new package)")
-except ImportError:
-    try:
-        import google.generativeai as genai_old
-        if GEMINI_API_KEY and GEMINI_API_KEY != "not_set":
-            genai_old.configure(api_key=GEMINI_API_KEY)
-            gemini_client = genai_old
-            GEMINI_ENABLED = True
-            print("🔑 Gemini configured (old package)")
-    except ImportError:
-        print("⚠️ No Gemini package found")
-except Exception as e:
-    print(f"⚠️ Gemini configuration failed: {e}")
+class _RestGeminiClient:
+    """Minimal stand-in for google.genai's client, speaking REST over requests.
+
+    The SDK's httpx/pydantic stack breaks under gevent once deployed --  every
+    call raises "super(type, obj): obj must be an instance or subtype of type"
+    -- while the identical build works locally, so the resolved wheels differ
+    in a way we cannot pin from here. requests/urllib3 is gevent-safe and the
+    app only ever needs generate_content, so call the endpoint directly.
+
+    Exposes the same `.models.generate_content(model=, contents=)` returning an
+    object with `.text`, so call sites are unchanged. Errors carry the HTTP
+    status in the message, which the existing 404/429 handling matches on.
+    """
+
+    _ENDPOINT = ("https://generativelanguage.googleapis.com"
+                 "/v1beta/models/{model}:generateContent")
+
+    class _Response:
+        def __init__(self, text):
+            self.text = text
+
+    class _Models:
+        def __init__(self, outer):
+            self._outer = outer
+
+        def generate_content(self, model, contents, config=None):
+            return self._outer._generate(model, contents)
+
+    # Per-call cap. Low enough that walking the whole fallback chain still
+    # returns before gunicorn's --timeout, so a slow model fails over instead
+    # of hanging the request.
+    def __init__(self, api_key, timeout=float(os.getenv("GEMINI_TIMEOUT", "35"))):
+        self.api_key = api_key
+        self.timeout = timeout
+        self.models = self._Models(self)
+
+    @staticmethod
+    def _to_parts(contents):
+        # Callers pass either a plain prompt or already-REST-shaped parts.
+        if isinstance(contents, str):
+            return [{"text": contents}]
+        return [{"text": c} if isinstance(c, str) else c for c in contents]
+
+    def _generate(self, model, contents):
+        resp = requests.post(
+            self._ENDPOINT.format(model=model),
+            params={"key": self.api_key},
+            json={"contents": [{"parts": self._to_parts(contents)}]},
+            timeout=self.timeout,
+        )
+        if resp.status_code != 200:
+            raise RuntimeError(f"{resp.status_code} {resp.text[:200]}")
+        data = resp.json()
+        for cand in data.get("candidates", []):
+            chunks = [part["text"]
+                      for part in cand.get("content", {}).get("parts", [])
+                      if "text" in part]
+            if chunks:
+                return self._Response("".join(chunks))
+        return self._Response("")
+
+
+if GEMINI_API_KEY and GEMINI_API_KEY != "not_set":
+    gemini_client = _RestGeminiClient(GEMINI_API_KEY)
+    GEMINI_ENABLED = True
+    print("🔑 Gemini configured (REST)")
+else:
+    print("⚠️ GEMINI_API_KEY not set -- Gemini disabled")
 
 if not GEMINI_API_KEY or GEMINI_API_KEY == "not_set":
     print("⚠️ Warning: GEMINI_API_KEY not found in .env file")
